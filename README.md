@@ -5,65 +5,25 @@
 Project Root
 │
 ├── engine/
-│   ├── __init__.py
-│   │   # Package initializer
-│   └── calculator.py
-│       # Formula evaluator, alerts, CalculationEngine pipeline
-│
+│   └── calculator.py          # Formula evaluator and calculation pipeline
 ├── spark/
-│   ├── __init__.py
-│   │   # Package initializer
-│   ├── spark_job.py
-│   │   # Spark Structured Streaming job
-│   └── influx_writer.py
-│       # Writes processed data to InfluxDB
-│
+│   ├── spark_job.py           # Spark Structured Streaming processing
+│   └── influx_writer.py       # Writes processed data to InfluxDB
 ├── frontend/
-│   ├── package.json
-│   │   # Frontend dependencies and scripts
-│   ├── next.config.js
-│   │   # Next.js configuration
-│   ├── pages/
-│   │   ├── _app.js
-│   │   │   # Global app wrapper/styles
-│   │   ├── index.js
-│   │   │   # Homepage with embedded Grafana dashboard
-│   │   └── metrics.js
-│   │       # Compatibility API endpoint
-│  
-├── .env
-│   # Environment variables and runtime secrets
-│
-├── config.yaml
-│   # Central configuration for assets, metrics, formulas,
-│   # alerts, Kafka, InfluxDB, and Grafana
-│
-├── docker-compose.yml
-│   # Orchestrates all project containers/services
-│
-├── Dockerfile.frontend
-│   # Docker image for Next.js frontend
-│
-├── Dockerfile.producer
-│   # Docker image for Python producer
-│
-├── Dockerfile.spark
-│   # Docker image for Spark processing service
-│
-├── grafana_dashboard.json
-│   # Grafana dashboard export/import file
-│
-├── producer.py
-│   # Simulates meter readings and publishes JSON messages to Kafka
-│
-├── QUICK_REFERENCE.md
-│   # Quick Docker run/recovery commands
-│
-├── README.md
-│   # Project overview and setup guide
-│
-├── requirements.txt
-│   # Python dependencies for producer, engine, and Spark jobs
+│   ├── package.json           # Frontend dependencies
+│   ├── next.config.js         # Next.js configuration
+│   └── pages/
+│       └── index.js           # Frontend dashboard page
+├── .env                       # Environment variables configuration
+├── config.yaml                # Metrics, formulas, alerts, Kafka, InfluxDB config
+├── docker-compose.yml         # Runs all project services/containers
+├── Dockerfile.frontend        # Frontend container setup
+├── Dockerfile.producer        # Producer container setup
+├── Dockerfile.spark           # Spark container setup
+├── producer.py                # Simulates energy meter readings
+├── QUICK_REFERENCE.md         # Setup and execution guide
+├── README.md                  # Project documentation
+└── requirements.txt           # Python dependencies
 ```
 ---
 
