@@ -1,0 +1,21 @@
+FROM eclipse-temurin:11-jre-jammy
+
+# Install Python and pip
+RUN apt-get update && apt-get install -y python3 python3-pip curl && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (PySpark and Influx client)
+RUN pip3 install --no-cache-dir pyspark==3.5.0 influxdb-client==1.18.0 pyyaml==6.0 kafka-python==2.0.2
+
+WORKDIR /app
+
+# Copy required app code
+COPY spark/ ./spark
+COPY engine/ ./engine
+COPY config.yaml ./
+
+ENV PYSPARK_PYTHON=python3
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+# Run the Spark job directly (uses local mode via pyspark)
+CMD ["python3", "spark/spark_job.py"]

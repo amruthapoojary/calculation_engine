@@ -1,0 +1,15 @@
+FROM node:18-bullseye
+WORKDIR /app
+
+# Install dependencies
+COPY frontend/package.json ./
+RUN npm install
+
+# Copy app
+COPY frontend/ ./
+
+ENV NEXT_TELEMETRY_DISABLED=1
+EXPOSE 3000
+
+# Development server for quick iteration; change to 'npm run start' for production
+CMD ["npm", "run", "dev"]

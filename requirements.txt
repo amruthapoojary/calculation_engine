@@ -1,0 +1,5 @@
+# Python package requirements for the calculation engine
+kafka-python==2.0.2
+pyspark==3.5.0
+influxdb-client==1.18.0
+pyyaml==6.0

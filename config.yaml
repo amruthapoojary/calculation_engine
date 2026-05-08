@@ -1,0 +1,161 @@
+# Energy Asset Management System - Configuration
+# Asset: Motor 1
+# This file defines all metrics, formulas, and alert thresholds
+
+asset:
+  id: "motor1"
+  name: "Motor 1"
+  type: "3-Phase Motor"
+  rated_capacity: 25  # Amperes
+
+influxdb:
+  url: "http://influxdb:8086"
+  token: "${INFLUX_TOKEN}"
+  org: "ukshati"
+  bucket: "energy"
+
+kafka:
+  bootstrap_servers: "kafka:9092"
+  topic: "energy-meter"
+
+# Input metrics from producer (what we receive from Kafka)
+input_metrics:
+  - name: "I_R"
+    description: "Red phase current"
+    unit: "A"
+  - name: "I_Y"
+    description: "Yellow phase current"
+    unit: "A"
+  - name: "I_B"
+    description: "Blue phase current"
+    unit: "A"
+  - name: "voltage"
+    description: "Line-to-neutral voltage"
+    unit: "V"
+  - name: "power_factor"
+    description: "Power factor"
+    unit: "PF"
+
+# Calculated metrics - formulas use input metrics
+calculations:
+  imbalance:
+    formula: "abs(I_R - I_Y) / ((I_R + I_Y + I_B) / 3) * 100"
+    unit: "%"
+    description: "Current imbalance across phases"
+    precision: 2
+    display_name: "Phase Imbalance"
+
+  power:
+    formula: "voltage * ((I_R + I_Y + I_B) / 3) * power_factor * 1.732"
+    unit: "W"
+    description: "3-phase apparent power"
+    precision: 1
+    display_name: "Total Power"
+
+  avg_current:
+    formula: "(I_R + I_Y + I_B) / 3"
+    unit: "A"
+    description: "Average phase current"
+    precision: 2
+    display_name: "Avg Current"
+
+  load_percentage:
+    formula: "((I_R + I_Y + I_B) / 3) / 25 * 100"
+    unit: "%"
+    description: "Load as percentage of rated capacity"
+    precision: 1
+    display_name: "Load %"
+
+# Alert thresholds for each calculated metric
+alerts:
+  imbalance:
+    alert: 5        # > 5%  → ALERT
+    warning: 10     # > 10% → WARNING
+    alarm: 20       # > 20% → ALARM
+    unit: "%"
+    status_map:
+      NORMAL: "< 5%"
+      ALERT: "5-10%"
+      WARNING: "10-20%"
+      ALARM: "> 20%"
+
+  power:
+    alert: 5000     # > 5 kW  → ALERT
+    warning: 8000   # > 8 kW  → WARNING
+    alarm: 10000    # > 10 kW → ALARM
+    unit: "W"
+    status_map:
+      NORMAL: "< 5kW"
+      ALERT: "5-8kW"
+      WARNING: "8-10kW"
+      ALARM: "> 10kW"
+
+  avg_current:
+    alert: 18       # > 18A → ALERT
+    warning: 22     # > 22A → WARNING
+    alarm: 25       # > 25A → ALARM (rated limit)
+    unit: "A"
+    status_map:
+      NORMAL: "< 18A"
+      ALERT: "18-22A"
+      WARNING: "22-25A"
+      ALARM: "> 25A"
+
+  load_percentage:
+    alert: 70       # > 70%  → ALERT
+    warning: 85     # > 85%  → WARNING
+    alarm: 100      # > 100% → ALARM (over capacity)
+    unit: "%"
+    status_map:
+      NORMAL: "< 70%"
+      ALERT: "70-85%"
+      WARNING: "85-100%"
+      ALARM: "> 100%"
+
+# Grafana dashboard configuration
+grafana:
+  refresh_interval: "5s"
+  time_range: "1h"
+  charts:
+    - name: "Phase Imbalance"
+      metric: "imbalance"
+      type: "gauge"
+      min: 0
+      max: 100
+      thresholds: [5, 10, 20]
+    
+    - name: "Total Power"
+      metric: "power"
+      type: "gauge"
+      min: 0
+      max: 15000
+      thresholds: [5000, 8000, 10000]
+    
+    - name: "Average Current"
+      metric: "avg_current"
+      type: "gauge"
+      min: 0
+      max: 30
+      thresholds: [18, 22, 25]
+    
+    - name: "Load Percentage"
+      metric: "load_percentage"
+      type: "gauge"
+      min: 0
+      max: 120
+      thresholds: [70, 85, 100]
+    
+    - name: "Phase Currents Over Time"
+      metrics: ["I_R", "I_Y", "I_B"]
+      type: "timeseries"
+      time_range: "1h"
+    
+    - name: "Calculated Metrics Over Time"
+      metrics: ["power", "imbalance", "avg_current", "load_percentage"]
+      type: "timeseries"
+      time_range: "1h"
+    
+    - name: "Alert History"
+      metric: "alert_status"
+      type: "table"
+      time_range: "24h"
