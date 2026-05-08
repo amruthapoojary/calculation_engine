@@ -1,216 +1,114 @@
-﻿# Full Run Guide - Docker-Only Workflow
+# Quick Reference
 
-This is the only guide you need to run the full program end to end.
-All services run inside Docker:
-- ZooKeeper
-- Kafka
-- InfluxDB
-- Grafana
-- Python producer
-- Spark processing job
-- Next.js frontend
+## Prerequisites
 
-## 1) What you need installed
+- Docker Desktop installed and running
 
-Only install these on your Windows machine:
-- Docker Desktop
-- Git or a way to open the project folder
+---
 
-Do not install Python, Node.js, or Java locally for normal use. They run inside containers.
+## 1) Edit `.env` and `docker-compose.yml`
 
-## 2) Open the project
+Edit `.env` in the project root:
 
-```powershell
-cd d:\calculation_engine_erp
 ```
 
-## 3) Check the environment file
-
-Make sure `.env` exists in the project root and contains values like these:
-
-```powershell
-INFLUX_URL=http://influxdb:8086
-INFLUX_ORG=ukshati
-INFLUX_BUCKET=energy
-INFLUX_TOKEN=my_super_secret_token_123456789
-KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-KAFKA_TOPIC=energy-meter
-PRODUCER_INTERVAL=1
+INFLUX_TOKEN=your_influxdb_token_here
 ```
 
-Important:
-- Use service names like `influxdb` and `kafka` inside Docker, not `localhost`.
-- If you change the token, update both `.env` and the InfluxDB admin token in `docker-compose.yml`.
+Now create it in InfluxDB and paste it here later.
 
-## 4) If image pulls are slow, pull one by one
+In `docker-compose.yml`, there's a token placeholder in the InfluxDB sections, you'll update it after creating the token.
+---
 
-If `docker compose up --build` fails with a TLS timeout, run these individually:
-
-```powershell
-docker pull confluentinc/cp-zookeeper:7.5.0
-docker pull confluentinc/cp-kafka:7.5.0
-docker pull influxdb:2.7.0
-docker pull grafana/grafana:10.2.0
-```
-
-If Grafana times out once, run just this again:
+## 2) Start the stack
 
 ```powershell
-docker pull grafana/grafana:10.2.0
+docker compose up --build 
 ```
 
-Docker will resume from cached layers.
+---
 
-## 5) Start the full stack
-
-```powershell
-docker compose up --build -d
-```
-
-What this starts:
-- `zookeeper`
-- `kafka`
-- `influxdb`
-- `grafana`
-- `producer`
-- `spark`
-- `frontend`
-
-## 6) Verify everything is running
+## 3) Check if services are healthy
 
 ```powershell
 docker compose ps
 ```
 
-Expected result:
-- Zookeeper healthy
-- Kafka healthy
-- InfluxDB healthy
-- Grafana healthy
-- Producer running
-- Spark running
-- Frontend healthy
-
-## 7) Open the apps
-
-- Grafana: http://localhost:3000
-- InfluxDB UI: http://localhost:8086
-- Next.js frontend: http://localhost:3001
-
-Note:
-- Grafana uses port 3000 on the host.
-- The frontend is mapped to 3001 so it does not conflict with Grafana.
-
-## 8) Watch logs
-
-Use these if something looks wrong:
+All services should show `healthy` or `running`. If not:
 
 ```powershell
-docker compose logs -f zookeeper
-docker compose logs -f kafka
-docker compose logs -f influxdb
+docker compose down
+docker compose up --build 
+```
+
+Then check again.
+## 4) Create InfluxDB API token
+
+Open InfluxDB UI: `http://localhost:8086`
+
+Login (admin credentials from `docker-compose.yml`, default: `admin`/`adminpassword`).
+
+Go: **Data** → **API Tokens** → **Generate API Token** → copy the token.
+
+---
+
+## 5) Paste the token
+
+- Open `.env` and set: `INFLUX_TOKEN=your_token_here`
+- In `docker-compose.yml`, also update it locally .
+
+---
+
+## 6) Restart services
+
+```powershell
+docker compose down
+docker compose up
+```
+
+---
+
+## 7) Configure Grafana and import dashboard
+
+Open Grafana: `http://localhost:3000` (admin/admin123)
+
+Add InfluxDB data source:
+- Type: InfluxDB (Flux)
+- URL: `http://influxdb:8086`
+- Organization: `ukshati`
+- Token: (paste your token)
+- Default bucket: `energy`
+- Click **Save & test**
+
+Import dashboard:
+- Go: **Dashboards** → **Import** → upload `grafana_dashboard.json` from repo root
+- Select the InfluxDB data source and import
+
+---
+
+## 8) Open the dashboard
+
+Frontend: `http://localhost:3001`  
+Grafana: `http://localhost:3000`
+
+---
+
+## Useful commands
+
+Check services:
+```powershell
+docker compose ps
+```
+
+Tail logs:
+```powershell
 docker compose logs -f grafana
-docker compose logs -f producer
+docker compose logs -f influxdb
 docker compose logs -f spark
-docker compose logs -f frontend
-```
-
-## 9) Data flow
-
-```text
-Producer -> Kafka -> Spark -> InfluxDB -> Grafana -> Next.js frontend
-```
-
-## 10) How to change formulas or alerts
-
-Edit `config.yaml`.
-
-Examples:
-
-```yaml
-calculations:
-  imbalance:
-    formula: "abs(I_R - I_Y) / ((I_R + I_Y + I_B) / 3) * 100"
-```
-
-```yaml
-alerts:
-  imbalance:
-    alert: 5
-    warning: 10
-    alarm: 20
-```
-
-Then rebuild the affected containers:
-
-```powershell
-docker compose up -d --build spark producer
-```
-
-If you changed frontend code:
-
-```powershell
-docker compose up -d --build frontend
-```
-
-## 11) How to restart cleanly
-
-```powershell
-docker compose restart
-```
-
-If you need a full rebuild:
-
-```powershell
-docker compose down
-docker compose up --build -d
-```
-
-If you want to remove volumes too:
-
-```powershell
-docker compose down -v
-docker compose up --build -d
-```
-
-## 12) Common checks
-
-Kafka:
-```powershell
-docker compose logs -f kafka
-```
-
-Spark:
-```powershell
-docker compose logs -f spark
-```
-
-Producer:
-```powershell
 docker compose logs -f producer
 ```
 
-Frontend:
-```powershell
-docker compose logs -f frontend
-```
-
-## 13) Stop everything
-
+Stop everything:
 ```powershell
 docker compose down
-```
-
-## 14) One-line recovery order
-
-If you just want the shortest working path:
-
-```powershell
-cd d:\calculation_engine_erp
-docker pull confluentinc/cp-zookeeper:7.5.0
-docker pull confluentinc/cp-kafka:7.5.0
-docker pull influxdb:2.7.0
-docker pull grafana/grafana:10.2.0
-docker compose up --build -d
-docker compose ps
 ```
